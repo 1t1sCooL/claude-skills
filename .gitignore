@@ -1,0 +1,16 @@
+# Never commit secrets
+secrets.env
+*.env
+.env.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+
+# Runtime / generated artifacts from skills
+graphify-out/
+reference/site/
+.playwright-mcp/
+node_modules/
+*.log
