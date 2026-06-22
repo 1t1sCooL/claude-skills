@@ -30,8 +30,8 @@ When the user types `/<name>`, invoke the Skill tool with `skill: "<name>"` befo
 Register: `flights` (`/flights`), `graphify` (`/graphify`), `migrate` (`/migrate`),
 `project-backlog` (`/project-backlog`), `1t1scopy` (`/1t1scopy`), and the freelance/quality/growth
 skills: `proposal`, `outreach-track`, `invoice`, `perf-guard`, `a11y`, `seo-tech`, `slice`,
-`deploy`, `changelog`, `devlog-post`, `flashcards`, `tg-content`, `seo-content`, `growth-audit`
-(each `/<name>`). The `aif-*` skills and the `daily-standup` skill self-describe via their own
+`deploy`, `changelog`, `devlog-post`, `flashcards`, `tg-content`, `seo-content`, `growth-audit`,
+`news-filter` (each `/<name>`). The `aif-*` skills and the `daily-standup` skill self-describe via their own
 `SKILL.md` frontmatter and do not need a CLAUDE.md trigger block (they activate by description/keywords).
 
 ## 3. Per-skill configuration
@@ -59,8 +59,8 @@ skills: `proposal`, `outreach-track`, `invoice`, `perf-guard`, `a11y`, `seo-tech
   smoke routes. Configure them per project on first run.
 - **invoice** — fill `./billing/profile.json` (requisites) on first run; defaults to RF
   self-employed/ИП, no VAT (configurable). Payment requisites live in `profile.json`, not secrets.
-- **tg-content** / **growth-audit** — ask for your Telegram channel handle on first run and save it
-  to `./growth/config.json`.
+- **tg-content** / **growth-audit** / **news-filter** — ask for your Telegram channel handle on first
+  run and save it to `./growth/config.json`.
 - **slice** — project-specific: self-detects the repo's FSD conventions (TS/JS, CSS Modules, barrel).
 
 ## 4. Verify
