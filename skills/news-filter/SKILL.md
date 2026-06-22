@@ -1,20 +1,24 @@
 ---
 name: news-filter
-description: Generate a ready-to-post Telegram news digest that filters signal from hype — scans fresh news across the stock market, crypto, AI and tech, labels each item 🟢 important / 🟡 watch / 🔴 noise, and writes a finished post in your channel's voice (no hype, practical lens). Powers a recurring «📡 Filter» rubric. Use when user says "сделай фильтр", "новостной дайджест", "пост про новости", "what's signal vs hype", "news filter", or types /news-filter.
-argument-hint: "[focus: stocks | crypto | ai | tech | a specific story/topic]"
+description: Two-phase news engine for a recurring «📡 Filter» rubric. Phase 1 — pull a POOL of fresh news candidates across the stock market, crypto, AI and tech (one-liner + provisional 🟢/🟡/🔴 each) and let the user pick one + add their angle. Phase 2 — write ONE full Telegram post (~1500–3000 chars) on that single story in the channel's voice (no hype, practical lens). Use when user says "сделай фильтр", "пул новостей", "новости на пост", "news filter", or types /news-filter.
+argument-hint: "[focus: stocks | crypto | ai | tech | empty = all worlds]"
 allowed-tools: Read Write Edit WebFetch WebSearch AskUserQuestion Bash
 ---
 
-# 📡 News Filter — signal-vs-hype digest for a Telegram channel
+# 📡 News Filter — signal-vs-hype engine for a Telegram channel
 
-Engine for a recurring **«📡 Filter»** rubric. Pulls fresh news from four worlds,
-**separates signal from hype**, and writes a ready-to-post digest in the channel's
-voice. The rubric's value: readers get not a headline feed but a curator's verdict —
+Engine for a recurring **«📡 Filter»** rubric. Works in **two phases**: first it hands the
+user a **pool of fresh news** from four worlds (stocks / crypto / AI / tech), the user
+**picks one** and adds their angle; then it writes **one full post** (~1500–3000 chars) on
+that single story. The rubric's value: not a headline feed but a curator's verdict —
 *what matters, what's noise, what it means in practice*.
+
+> ⚠️ **One post = one story.** Never glue several mini-blurbs into a digest — the user picks
+> a topic from the pool and it's expanded into a full post. The pool is only for choosing.
 
 ## Config (once)
 
-Channel handle + optional project paths from `./growth/config.json`:
+Channel handle + optional post dir from `./growth/config.json`:
 ```json
 { "tg_channel": "<@handle или t.me/...>", "post_dir": "<dir for finished posts>" }
 ```
@@ -23,48 +27,51 @@ Optional: read a local `rubric.md` / `post-template.md` if the project has one, 
 
 ## Что на входе (`$ARGUMENTS`)
 
-- Опц. **фокус**: `stocks` / `crypto` / `ai` / `tech` — сузить дайджест до одного мира.
-- Опц. **конкретная новость/тема** (`тема: rate cut`) — собрать вокруг неё.
-- Пусто → просканировать все четыре мира и собрать смешанный выпуск из 2–3 лучших новостей.
+- Опц. **фокус**: `stocks` / `crypto` / `ai` / `tech` — сузить пул до одного мира.
+- Пусто → собрать пул по всем четырём мирам.
 
 ## Источники (искать свежее — окно ~7–14 дней)
 
-- 📈 **Stock market:** exchange newsroom, Reuters/Bloomberg, broker research. Signals: central-bank rate, dividends of blue chips, key earnings, IPO/delisting, market infrastructure. *(Localize to your market — e.g. MOEX for RU, NYSE/NASDAQ for US.)*
-- 🪙 **Crypto:** CoinDesk, The Block, CoinShares fund-flow reports; regulation (SEC, ETF flows), major BTC/ETH moves, on-chain. Отсекать памп альтов и «X взлетел на 300%».
-- 🤖 **AI:** model releases (Anthropic / OpenAI / Google / Meta), benchmarks, API pricing, developer tools, regulation. Угол — *что меняет работу инженера*.
-- 💻 **Tech:** framework releases (React / Next.js / TypeScript / Node), browsers, devtools, big industry shifts.
-
-WebSearch для свежих заголовков, WebFetch — чтобы дойти до первоисточника (не пересказывать
-чужой пересказ). Дату «сегодня» брать из окружения, не выдумывать. Числа/версии — проверять.
+- 📈 **Stocks:** exchange newsroom, Reuters/Bloomberg, broker research. Signals: central-bank rate, dividends, key earnings, IPO/delisting, market infrastructure. *(Localize to your market.)*
+- 🪙 **Crypto:** CoinDesk, The Block, CoinShares fund-flow reports; regulation (SEC, ETF flows), major BTC/ETH moves. Отсекать памп альтов.
+- 🤖 **AI:** model releases (Anthropic / OpenAI / Google / Meta), benchmarks, API pricing, dev tools, regulation. Угол — *что меняет работу инженера*.
+- 💻 **Tech:** framework releases (React / Next.js / TypeScript / Node), browsers, devtools, big shifts.
 
 ## Шаги
 
+### Фаза 1 — Пул новостей (выдать и ОСТАНОВИТЬСЯ)
+
 1. **Config + tone** — прочитать `config.json`; при наличии — локальные `rubric.md`/`post-template.md`.
 2. **Определить фокус** из `$ARGUMENTS` (или все четыре мира).
-3. **Собрать свежак** — WebSearch по каждому миру, окно ~7–14 дней. Для каждого кандидата дойти до первоисточника (WebFetch).
-4. **Фильтр сигнал/шум** — главный шаг. Отбросить «заголовок ради заголовка». Оставить только то, что **реально меняет картину**. Лучше 1 сильная новость, чем 3 проходных. **Не гнаться за каждым инфоповодом.**
-5. **Оценить каждую** ярлыком + одной фразой «что это значит на практике»:
-   - 🟢 **important** — меняет решения/картину;
-   - 🟡 **watch** — потенциал есть, но рано судить;
-   - 🔴 **noise/hype** — раздуто, на практике ничего не меняет (показываем как пример того, что отфильтровали).
-6. **Написать пост** по скелету ниже, в голосе канала.
-7. **Самопроверка**: один смысл-вектор, хук в первых 2 строках, длина 1500–3000 знаков (≤4096), теги, тон без хайпа.
-8. **Сохранить** файл (см. «Выход»).
+3. **Собрать свежак** — WebSearch по каждому миру, окно ~7–14 дней. Первоисточник тут можно не открывать (это для фазы 2).
+4. **Предварительный фильтр** — отсеять явный мусор. Оставить **8–12 кандидатов**, достойных внимания.
+5. **Выдать пул** нумерованным списком, сгруппировав по 📈/🪙/🤖/💻. Каждый:
+   `N. <emoji> <суть в одну строку> — <предв. 🟢/🟡/🔴> · <источник>`.
+6. **СТОП. Спросить пользователя:** какую новость берём + какой угол/идеи вложить
+   (AskUserQuestion с топ-кандидатами + «Other», либо ждать ответа). **Не писать пост до выбора.**
 
-## Скелет поста (Telegram, 1500–3000 знаков)
+### Фаза 2 — Один пост (после выбора)
+
+7. **Проверить факты** выбранной новости по **первоисточнику** (WebFetch): числа, версии, даты. Расхождение с заголовком — берём первоисточник.
+8. **Написать ОДИН полноценный пост** (~1500–3000 знаков) по скелету ниже, раскрывая одну новость на всю глубину и **вплетая идеи пользователя**.
+9. **Самопроверка**: одна мысль, хук в первых 2 строках, практика > рассуждений, длина, теги, тон без хайпа.
+10. **Сохранить** файл (см. «Выход») + выдать чистый текст для копипасты.
+
+## Скелет поста (Telegram, ОДНА новость, 1500–3000 знаков)
 
 ```
-[ХУК] — 1–2 строки. Рамка: «за неделю три новости реально стоили внимания — остальное шум».
+[ХУК] — 1–2 строки. Контринтуитив или рамка вокруг этой новости. Не «сегодня вышла новость…».
 
-📈/🪙/🤖/💻 **[Новость 1 — суть в 1–2 строки своими словами]**
-🟢/🟡/🔴 [Оценка: почему важно / почему шум + что это значит на практике]
+[ЧТО СЛУЧИЛОСЬ] — 2–3 строки своими словами: суть события без воды.
 
-📈/🪙/🤖/💻 **[Новость 2 …]**
-🟢/🟡/🔴 [Оценка …]
+🟢/🟡/🔴 [ВЕРДИКТ] — сигнал это или шум, и почему именно так.
 
-(опц. Новость 3)
+[ЧТО ЭТО ЗНАЧИТ НА ПРАКТИКЕ] — мясо. Разбор/список/цифры через практическую призму.
+Сюда вплетаются идеи и угол, которые накидал пользователь.
+• пункт
+• пункт
 
-**Вывод:** один сигнал навынос — на что реально смотреть, а на что забить.
+[ВЫВОД] — один инсайт навынос.
 
 [CTA — мягкий]
 
@@ -74,14 +81,14 @@ WebSearch для свежих заголовков, WebFetch — чтобы до
 ## Правила (тон рубрики)
 
 - **Сигнал, а не лента.** Ценность — в фильтре и оценке, а не в пересказе заголовков.
-- **Честно, без хайпа.** Можно «пока непонятно» / «рынок переоценил». Это и есть бренд.
-- **Своими словами + первоисточник.** Не копипастить пресс-релизы; дать ссылку на источник.
-- **Практический угол.** Каждая новость — через «что это значит на практике».
-- **Не каждую неделю.** Вставлять разово под инфоповод (вне жёсткой сетки), чтобы не было беговой дорожки и протухания.
+- **Честно, без хайпа.** Можно «пока непонятно» / «рынок переоценил».
+- **Своими словами + первоисточник.** Не копипастить пресс-релизы; дать ссылку.
+- **Практический угол.** Новость — через «что это значит на практике».
+- **Не каждую неделю.** Вставлять разово под инфоповод, чтобы не было беговой дорожки.
 - **Никаких инвестрекомендаций** — оценка важности ≠ совет покупать. При новостях про активы добавлять «не инвестрекомендация».
 
 ## Выход
 
-- Файл `<post_dir>/Filter — <YYYY-MM-DD>.md`: заголовок, строка-мета (рубрика/столп/формат/теги/статус), блок «## Текст поста» с готовым постом, и список ссылок на источники в конце.
-- В ответе пользователю — сам текст поста (готов к копипасте) + ярлыки оценок + откуда новости.
-- Не постит в Telegram сам — только готовит текст; публикует пользователь (отложка/вручную).
+- Файл `<post_dir>/Filter — <YYYY-MM-DD>.md`: заголовок, строка-мета, блок «## Текст поста», ссылки на источники.
+- В ответе — чистый текст поста для копипасты + откуда новость.
+- Не постит в Telegram сам — публикует пользователь.
