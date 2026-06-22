@@ -28,9 +28,11 @@ When the user types `/<name>`, invoke the Skill tool with `skill: "<name>"` befo
 ```
 
 Register: `flights` (`/flights`), `graphify` (`/graphify`), `migrate` (`/migrate`),
-`project-backlog` (`/project-backlog`), `1t1scopy` (`/1t1scopy`). The `aif-*` skills and the
-`daily-standup` skill self-describe via their own `SKILL.md` frontmatter and do not need a
-CLAUDE.md trigger block (they activate by description/keywords).
+`project-backlog` (`/project-backlog`), `1t1scopy` (`/1t1scopy`), and the freelance/quality/growth
+skills: `proposal`, `outreach-track`, `invoice`, `perf-guard`, `a11y`, `seo-tech`, `slice`,
+`deploy`, `changelog`, `devlog-post`, `flashcards`, `tg-content`, `seo-content`, `growth-audit`
+(each `/<name>`). The `aif-*` skills and the `daily-standup` skill self-describe via their own
+`SKILL.md` frontmatter and do not need a CLAUDE.md trigger block (they activate by description/keywords).
 
 ## 3. Per-skill configuration
 - **migrate** — needs `~/.claude/secrets.env` (NEVER commit it). Create from this template and
@@ -49,6 +51,17 @@ CLAUDE.md trigger block (they activate by description/keywords).
 - **1t1scopy** — placeholders `your-site.com`, `your-project`, `<your-project-memory-slug>` must be
   replaced with your real reference domain, project name, and Claude Code project memory slug.
 - **graphify** — see its `SKILL.md`; it produces a `graphify-out/` dir (git-ignored).
+- **perf-guard** — needs Node 18+ and Google Chrome for the Lighthouse CLI, or a `PSI_API_KEY`
+  env var for the PageSpeed Insights fallback. Run from the MAIN session.
+- **a11y** — uses Playwright (axe-core) when available; run from the MAIN session (browser
+  automation is denied to sub-agents). Falls back to static HTML analysis without it.
+- **deploy** — project-specific placeholders: Jenkins job/URL, deploy trigger method, env domains,
+  smoke routes. Configure them per project on first run.
+- **invoice** — fill `./billing/profile.json` (requisites) on first run; defaults to RF
+  self-employed/ИП, no VAT (configurable). Payment requisites live in `profile.json`, not secrets.
+- **tg-content** / **growth-audit** — ask for your Telegram channel handle on first run and save it
+  to `./growth/config.json`.
+- **slice** — project-specific: self-detects the repo's FSD conventions (TS/JS, CSS Modules, barrel).
 
 ## 4. Verify
 ```bash
